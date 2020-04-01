@@ -1,0 +1,17 @@
+name: creo_color_picker
+description: Simple Flutter color picker widgets with alpha channel and popup view.
+version: 0.0.1
+homepage: https://github.com/creomobile/creo_color_picker
+
+environment:
+  sdk: ">=2.6.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  combos: ^1.2.0
+
+dev_dependencies:
+  pedantic: ^1.8.0
+
+flutter:
