@@ -1,6 +1,5 @@
 import 'package:creo_color_picker/creo_color_picker.dart';
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 
 void main() => runApp(const _App());
 
@@ -30,42 +29,50 @@ class _ColorPickerExamplePageState extends State<ColorPickerExamplePage> {
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: Text('ColorPicker sample app')),
         body: Center(
-          child: Column(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: 300,
-                height: 100,
-                child: ColorHex(
-                  color: _alphaColor,
-                  onColorChanged: (color) =>
-                      setState(() => _sourceColor = color),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                  width: 300,
-                  height: 200,
-                  child: Palette(
-                      baseColor: _rainbowColor,
-                      color: _sourceColor,
+              SizedBox(width: 300, height: 400, child: ColorPicker()),
+              const SizedBox(width: 16),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 300,
+                    height: 76,
+                    child: ColorHex(
+                      color: _alphaColor,
                       onColorChanged: (color) =>
-                          setState(() => _paletteColor = color))),
-              const SizedBox(height: 16),
-              SizedBox(
-                  width: 300,
-                  child: RainbowSlider(
-                    color: _sourceColor,
-                    onColorChanged: (color) =>
-                        setState(() => _rainbowColor = color),
-                  )),
-              SizedBox(
-                  width: 300,
-                  child: AlphaSlider(
-                    alpha: _alpha,
-                    onAlphaChanged: (alpha) => setState(() => _alpha = alpha),
-                    color: _paletteColor,
-                  )),
+                          setState(() => _sourceColor = color),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                      width: 300,
+                      height: 200,
+                      child: Palette(
+                          baseColor: _rainbowColor,
+                          color: _sourceColor,
+                          onColorChanged: (color) =>
+                              setState(() => _paletteColor = color))),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                      width: 300,
+                      child: RainbowSlider(
+                        color: _sourceColor,
+                        onColorChanged: (color) =>
+                            setState(() => _rainbowColor = color),
+                      )),
+                  SizedBox(
+                      width: 300,
+                      child: AlphaSlider(
+                        alpha: _alpha,
+                        onAlphaChanged: (alpha) =>
+                            setState(() => _alpha = alpha),
+                        color: _paletteColor,
+                      )),
+                ],
+              ),
             ],
           ),
         ),

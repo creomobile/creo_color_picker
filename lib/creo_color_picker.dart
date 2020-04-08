@@ -10,6 +10,8 @@ import 'package:flutter/scheduler.dart';
 const _mindouble = 0.00001;
 const double _maxalpha = 0xff;
 const _alphaColor = Color(0xffE0E0E0);
+const _colorHexDecoration = InputDecoration(
+    border: OutlineInputBorder(), labelText: 'Hex', prefix: Text('#'));
 const _rainbow = LinearGradient(colors: [
   Color(0xffff0000),
   Color(0xffffff00),
@@ -22,6 +24,74 @@ const _rainbow = LinearGradient(colors: [
 
 // * ColorPicker
 
+class ColorPicker extends StatefulWidget {
+  const ColorPicker({
+    Key key,
+    this.color = const Color(0xffff0000),
+    this.withAlpha = true,
+    this.colorHexHeight = 76.0,
+    this.colorHexDecoration = _colorHexDecoration,
+  })  : assert(color != null),
+        assert(withAlpha != null),
+        assert(colorHexHeight != null),
+        super(key: key);
+
+  final Color color;
+  final bool withAlpha;
+  final double colorHexHeight;
+  final InputDecoration colorHexDecoration;
+
+  @override
+  _ColorPickerState createState() => _ColorPickerState(color);
+}
+
+class _ColorPickerState extends State<ColorPicker> {
+  _ColorPickerState(this._color);
+  Color _color;
+
+  @override
+  void didUpdateWidget(ColorPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.withAlpha != oldWidget.withAlpha ||
+        widget.colorHexHeight != oldWidget.colorHexHeight ||
+        widget.colorHexDecoration != oldWidget.colorHexDecoration) {
+      setState(() {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      Column(mainAxisSize: MainAxisSize.min, children: [
+        SizedBox(
+          height: widget.colorHexHeight,
+          child: ColorHex(
+            color: _color,
+            onColorChanged: (color) {},
+            withAlpha: widget.withAlpha,
+            decoration: widget.colorHexDecoration,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: Palette(
+            baseColor: Colors.red,
+            color: _color,
+            onColorChanged: (color) {},
+          ),
+        ),
+        const SizedBox(height: 16),
+        RainbowSlider(
+          color: _color,
+          onColorChanged: (color) {},
+        ),
+        AlphaSlider(
+          alpha: 1.0,
+          onAlphaChanged: (alpha) {},
+          color: _color,
+        ),
+      ]);
+}
+
 // * ColorHex
 
 class ColorHex extends StatefulWidget {
@@ -32,8 +102,7 @@ class ColorHex extends StatefulWidget {
     this.withAlpha = true,
     this.alphaColor = _alphaColor,
     this.alphaRectSize = 6.0,
-    this.decoration = const InputDecoration(
-        border: OutlineInputBorder(), labelText: 'Hex', prefix: Text('#')),
+    this.decoration = _colorHexDecoration,
   })  : assert(color != null),
         assert(withAlpha != null),
         assert(alphaColor != null),
