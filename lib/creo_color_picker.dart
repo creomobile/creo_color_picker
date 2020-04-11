@@ -2,6 +2,7 @@ library creo_color_picker;
 
 import 'dart:ui';
 
+import 'package:combos/combos.dart';
 import 'package:flutter/material.dart';
 
 // * consts
@@ -24,6 +25,95 @@ const _rainbow = LinearGradient(colors: [
 
 typedef ColorPositionChanged<TPosition> = Function(
     TPosition position, Color color);
+
+// * context
+
+class ColorPickerParameters {
+  const ColorPickerParameters({this.trackHeight});
+
+  static const defaultParameters = ColorPickerParameters(trackHeight: 12.0);
+
+  /// Determine track height for [AlphaSlider] and [RainbowSlider]
+  final double trackHeight;
+
+  ColorPickerParameters copyWith(double trackHeight) =>
+      ColorPickerParameters(trackHeight: trackHeight ?? this.trackHeight);
+}
+
+/// Allows to set [ColorPickerParameters] for all [ColorPicker], [ColorPickerCombo]
+/// widgets in the [child].
+class ColorPickerContext extends StatelessWidget {
+  const ColorPickerContext({
+    Key key,
+    @required this.parameters,
+    @required this.child,
+  })  : assert(parameters != null),
+        assert(child != null),
+        super(key: key);
+
+  final ColorPickerParameters parameters;
+  final Widget child;
+
+  static ColorPickerContextData of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ColorPickerContextData>();
+
+  @override
+  Widget build(BuildContext context) {
+    final parentData = ColorPickerContext.of(context);
+    final def = parentData == null
+        ? ColorPickerParameters.defaultParameters
+        : parentData.parameters;
+    final my = parameters;
+    final merged = ColorPickerParameters(
+      trackHeight: my.trackHeight ?? def.trackHeight,
+    );
+
+    return ColorPickerContextData(this, child, merged);
+  }
+}
+
+/// Provides [ColorPickerParameters] for the specified [ColorPickerContext].
+class ColorPickerContextData extends InheritedWidget {
+  const ColorPickerContextData(this._widget, Widget child, this.parameters)
+      : super(child: child);
+
+  final ColorPickerContext _widget;
+  final ColorPickerParameters parameters;
+
+  @override
+  bool updateShouldNotify(ColorPickerContextData oldWidget) =>
+      _widget.parameters != oldWidget._widget.parameters;
+}
+
+// * ColorPickerCombo
+
+class ColorPickerCombo extends StatefulWidget {
+  const ColorPickerCombo({
+    Key key,
+    this.color = const Color(0xffff0000),
+    this.onColorChanged,
+    this.withAlpha = true,
+    this.colorHexHeight = 76.0,
+    this.colorHexDecoration = _colorHexDecoration,
+  })  : assert(color != null),
+        assert(withAlpha != null),
+        assert(colorHexHeight != null),
+        super(key: key);
+
+  final Color color;
+  final ValueChanged<Color> onColorChanged;
+  final bool withAlpha;
+  final double colorHexHeight;
+  final InputDecoration colorHexDecoration;
+
+  @override
+  _ColorPickerComboState createState() => _ColorPickerComboState();
+}
+
+class _ColorPickerComboState extends State<ColorPickerCombo> {
+  @override
+  Widget build(BuildContext context) => Combo(child: Container());
+}
 
 // * ColorPicker
 
@@ -478,14 +568,11 @@ class RainbowSlider extends StatefulWidget {
   const RainbowSlider({
     Key key,
     this.position = 0.0,
-    this.trackHeight = 12.0,
     this.onPositionChanged,
   })  : assert(position != null),
-        assert(trackHeight != null),
         super(key: key);
 
   final double position;
-  final double trackHeight;
   final ColorPositionChanged<double> onPositionChanged;
 
   // ignore: missing_return
@@ -544,10 +631,12 @@ class _RainbowSliderState extends State<RainbowSlider> {
   @override
   Widget build(BuildContext context) {
     final color = _color;
+    final parameters = ColorPickerContext.of(context)?.parameters ??
+        ColorPickerParameters.defaultParameters;
     return SliderTheme(
       data: SliderThemeData(
           trackShape: const _RainbowSliderTrackShape(),
-          trackHeight: widget.trackHeight,
+          trackHeight: parameters.trackHeight,
           thumbColor: color,
           overlayColor: color.withOpacity(0.33)),
       child: Slider(
@@ -601,18 +690,15 @@ class _RainbowSliderTrackShape extends SliderTrackShape
 class AlphaSlider extends StatefulWidget {
   const AlphaSlider({
     Key key,
-    this.trackHeight = 12.0,
     this.alpha = 1.0,
     this.onAlphaChanged,
-    this.color = Colors.grey,
+    this.color = const Color(0xffff0000),
     this.alphaColor = _alphaColor,
-  })  : assert(trackHeight != null),
-        assert(alpha != null && alpha >= 0.0 && alpha <= 1.0),
+  })  : assert(alpha != null && alpha >= 0.0 && alpha <= 1.0),
         assert(color != null),
         assert(alphaColor != null),
         super(key: key);
 
-  final double trackHeight;
   final double alpha;
   final ValueChanged<double> onAlphaChanged;
   final Color color;
@@ -639,11 +725,14 @@ class _AlphaSliderState extends State<AlphaSlider> {
   Widget build(BuildContext context) {
     final widget = this.widget;
     final color = widget.color;
+    final parameters = ColorPickerContext.of(context)?.parameters ??
+        ColorPickerParameters.defaultParameters;
+
     return SliderTheme(
       data: SliderThemeData(
           trackShape: _AlphaSliderTrackShape(
               color: color, alphaColor: widget.alphaColor),
-          trackHeight: widget.trackHeight,
+          trackHeight: parameters.trackHeight,
           thumbColor: color,
           overlayColor: color.withOpacity(0.33)),
       child: Slider(
