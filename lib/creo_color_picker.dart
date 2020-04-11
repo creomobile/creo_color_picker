@@ -3,12 +3,10 @@ library creo_color_picker;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
 // * consts
 
 const _mindouble = 0.00001;
-const double _maxalpha = 0xff;
 const _alphaColor = Color(0xffE0E0E0);
 const _colorHexDecoration = InputDecoration(
     border: OutlineInputBorder(), labelText: 'Hex', prefix: Text('#'));
@@ -22,12 +20,18 @@ const _rainbow = LinearGradient(colors: [
   Color(0xffff0000),
 ]);
 
+// * types
+
+typedef ColorPositionChanged<TPosition> = Function(
+    TPosition position, Color color);
+
 // * ColorPicker
 
 class ColorPicker extends StatefulWidget {
   const ColorPicker({
     Key key,
     this.color = const Color(0xffff0000),
+    this.onColorChanged,
     this.withAlpha = true,
     this.colorHexHeight = 76.0,
     this.colorHexDecoration = _colorHexDecoration,
@@ -37,6 +41,7 @@ class ColorPicker extends StatefulWidget {
         super(key: key);
 
   final Color color;
+  final ValueChanged<Color> onColorChanged;
   final bool withAlpha;
   final double colorHexHeight;
   final InputDecoration colorHexDecoration;
@@ -46,17 +51,48 @@ class ColorPicker extends StatefulWidget {
 }
 
 class _ColorPickerState extends State<ColorPicker> {
-  _ColorPickerState(this._color);
+  _ColorPickerState(Color color) {
+    _updateColor(color);
+  }
+
   Color _color;
+  double _rainbowPosition;
+  Color _rainbowColor;
+  Offset _palettePosition;
+  Color _paletteColor;
+  double _alpha;
 
   @override
   void didUpdateWidget(ColorPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
+    var update = false;
     if (widget.withAlpha != oldWidget.withAlpha ||
         widget.colorHexHeight != oldWidget.colorHexHeight ||
         widget.colorHexDecoration != oldWidget.colorHexDecoration) {
-      setState(() {});
+      update = true;
     }
+    final color = widget.color;
+    if (color != oldWidget.color && color != _color) {
+      _updateColor(color);
+      update = true;
+    }
+    if (update) setState(() {});
+  }
+
+  void _updateColor(Color color) {
+    _color = color;
+    _rainbowPosition = RainbowSlider.getPosition(color);
+    _rainbowColor = RainbowSlider.getColor(_rainbowPosition);
+    _palettePosition = Palette.getPosition(color);
+    _paletteColor = color.withOpacity(1.0);
+    _alpha = color.opacity;
+  }
+
+  void _updateAlpha() {
+    _color = _paletteColor.withOpacity(_alpha);
+    setState(() {});
+    final onColorChanged = widget.onColorChanged;
+    if (onColorChanged != null) onColorChanged(_color);
   }
 
   @override
@@ -66,7 +102,7 @@ class _ColorPickerState extends State<ColorPicker> {
           height: widget.colorHexHeight,
           child: ColorHex(
             color: _color,
-            onColorChanged: (color) {},
+            onColorChanged: (color) => setState(() => _updateColor(color)),
             withAlpha: widget.withAlpha,
             decoration: widget.colorHexDecoration,
           ),
@@ -74,20 +110,32 @@ class _ColorPickerState extends State<ColorPicker> {
         const SizedBox(height: 16),
         Expanded(
           child: Palette(
-            baseColor: Colors.red,
-            color: _color,
-            onColorChanged: (color) {},
+            rainbowColor: _rainbowColor,
+            position: _palettePosition,
+            onPositionChanged: (position, color) {
+              _palettePosition = position;
+              _paletteColor = color;
+              _updateAlpha();
+            },
           ),
         ),
         const SizedBox(height: 16),
         RainbowSlider(
-          color: _color,
-          onColorChanged: (color) {},
+          position: _rainbowPosition,
+          onPositionChanged: (position, color) {
+            _rainbowPosition = position;
+            _rainbowColor = color;
+            _paletteColor = Palette.getColor(_rainbowColor, _palettePosition);
+            _updateAlpha();
+          },
         ),
         AlphaSlider(
-          alpha: 1.0,
-          onAlphaChanged: (alpha) {},
-          color: _color,
+          alpha: _alpha,
+          color: _paletteColor,
+          onAlphaChanged: (alpha) {
+            _alpha = alpha;
+            _updateAlpha();
+          },
         ),
       ]);
 }
@@ -268,38 +316,29 @@ class _AlphaPainter extends CustomPainter {
 class Palette extends StatefulWidget {
   const Palette({
     Key key,
-    this.baseColor = const Color(0xffff0000),
-    this.color = const Color(0xffff0000),
-    this.onColorChanged,
+    this.rainbowColor = const Color(0xffff0000),
+    this.position = Offset.zero,
+    this.onPositionChanged,
     this.cursorSize = 24.0,
     this.cursorColor = Colors.white,
     this.cursorWidth = 2.0,
     this.borderRadius = const BorderRadius.all(Radius.circular(6)),
-  })  : assert(baseColor != null),
-        assert(color != null),
+  })  : assert(rainbowColor != null),
+        assert(position != null),
         assert(cursorSize != null),
         assert(cursorColor != null),
         assert(cursorWidth != null),
         super(key: key);
 
-  final Color baseColor;
-  final Color color;
-  final ValueChanged<Color> onColorChanged;
+  final Color rainbowColor;
+  final Offset position;
+  final ColorPositionChanged<Offset> onPositionChanged;
   final double cursorSize;
   final Color cursorColor;
   final double cursorWidth;
   final BorderRadius borderRadius;
 
-  @override
-  _PaletteState createState() => _PaletteState(color);
-}
-
-class _PaletteState extends State<Palette> {
-  _PaletteState(this._color) : _position = _getPosition(_color);
-  Color _color;
-  Offset _position;
-
-  static Offset _getPosition(Color color) {
+  static Offset getPosition(Color color) {
     final channels = _getSortedChannels(color);
     final brightness = channels[0].value / 0xff;
     if (brightness == 0) return const Offset(1, 1);
@@ -308,19 +347,32 @@ class _PaletteState extends State<Palette> {
     return Offset(x, y);
   }
 
+  static Color getColor(Color rainbowColor, Offset position) => Color.lerp(
+      Color.lerp(rainbowColor, Colors.white, position.dx),
+      Colors.black,
+      position.dy);
+
+  @override
+  _PaletteState createState() => _PaletteState(position);
+}
+
+class _PaletteState extends State<Palette> {
+  _PaletteState(this._position);
+  Offset _position;
+  Color _color;
+
   @override
   void didUpdateWidget(Palette oldWidget) {
     super.didUpdateWidget(oldWidget);
     final widget = this.widget;
-    final color = widget.color;
-    if (color != oldWidget.color && color != _color) {
+    final rainbowColor = widget.rainbowColor;
+    final position = widget.position;
+    if (rainbowColor != oldWidget.rainbowColor ||
+        (position != oldWidget.position && position != _position)) {
       setState(() {
-        _color = color;
-        _position = _getPosition(color);
+        _position = position;
+        _color = Palette.getColor(rainbowColor, position);
       });
-    } else if (widget.baseColor != oldWidget.baseColor) {
-      setState(() => _updateColor());
-      SchedulerBinding.instance.addPostFrameCallback((_) => _raiseChanged());
     }
   }
 
@@ -329,19 +381,10 @@ class _PaletteState extends State<Palette> {
     final y = (position.dy / height).clamp(0.0, 1.0);
     setState(() {
       _position = Offset(x, y);
-      _updateColor();
+      _color = Palette.getColor(widget.rainbowColor, _position);
     });
-    _raiseChanged();
-  }
-
-  void _updateColor() => _color = Color.lerp(
-      Color.lerp(widget.baseColor, Colors.white, _position.dx),
-      Colors.black,
-      _position.dy);
-
-  void _raiseChanged() {
-    final onColorChanged = widget.onColorChanged;
-    if (onColorChanged != null) onColorChanged(_color);
+    final onPositionChanged = widget.onPositionChanged;
+    if (onPositionChanged != null) onPositionChanged(_position, _color);
   }
 
   @override
@@ -365,7 +408,8 @@ class _PaletteState extends State<Palette> {
               SizedBox(
                 width: width,
                 height: height,
-                child: CustomPaint(painter: _PalettePainter(widget.baseColor)),
+                child:
+                    CustomPaint(painter: _PalettePainter(widget.rainbowColor)),
               ),
               Positioned(
                 left: width * (1 - _position.dx) - half,
@@ -422,27 +466,19 @@ class _PalettePainter extends CustomPainter {
 class RainbowSlider extends StatefulWidget {
   const RainbowSlider({
     Key key,
+    this.position = 0.0,
     this.trackHeight = 12.0,
-    this.color = const Color(0xffff0000),
-    this.onColorChanged,
-  })  : assert(trackHeight != null),
-        assert(color != null),
+    this.onPositionChanged,
+  })  : assert(position != null),
+        assert(trackHeight != null),
         super(key: key);
 
+  final double position;
   final double trackHeight;
-  final Color color;
-  final ValueChanged<Color> onColorChanged;
-
-  @override
-  _RainbowSliderState createState() => _RainbowSliderState(color);
-}
-
-class _RainbowSliderState extends State<RainbowSlider> {
-  _RainbowSliderState(Color color) : _position = _getPosition(color);
-  double _position;
+  final ColorPositionChanged<double> onPositionChanged;
 
   // ignore: missing_return
-  static double _getPosition(Color color) {
+  static double getPosition(Color color) {
     final channels = _getSortedChannels(color);
     final c0 = channels[0].value;
     final c1 = channels[1].value;
@@ -460,8 +496,7 @@ class _RainbowSliderState extends State<RainbowSlider> {
     }
   }
 
-  Color get _color {
-    final position = _position;
+  static Color getColor(double position) {
     final index = position.truncate();
     final colors = _rainbow.colors;
     final color = colors[index];
@@ -472,18 +507,28 @@ class _RainbowSliderState extends State<RainbowSlider> {
   }
 
   @override
+  _RainbowSliderState createState() => _RainbowSliderState(position);
+}
+
+class _RainbowSliderState extends State<RainbowSlider> {
+  _RainbowSliderState(this._position)
+      : _color = RainbowSlider.getColor(_position);
+  double _position;
+  Color _color;
+
+  @override
   void didUpdateWidget(RainbowSlider oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final color = widget.color;
-    if (color != oldWidget.color && color != _color) {
-      setState(() => _position = _getPosition(color));
-      final onColorChanged = widget.onColorChanged;
-      if (onColorChanged != null) {
-        SchedulerBinding.instance
-            .addPostFrameCallback((_) => onColorChanged(_color));
-      }
+    final position = widget.position;
+    if (position != oldWidget.position && position != _position) {
+      _updatePosition(position);
     }
   }
+
+  void _updatePosition(double position) => setState(() {
+        _position = position;
+        _color = RainbowSlider.getColor(position);
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -497,10 +542,10 @@ class _RainbowSliderState extends State<RainbowSlider> {
       child: Slider(
           value: _position,
           max: _rainbow.colors.length - 1.0,
-          onChanged: (value) {
-            setState(() => _position = value);
-            final onColorChanged = widget.onColorChanged;
-            if (onColorChanged != null) onColorChanged(_color);
+          onChanged: (position) {
+            _updatePosition(position);
+            final onPositionChanged = widget.onPositionChanged;
+            if (onPositionChanged != null) onPositionChanged(_position, _color);
           }),
     );
   }
@@ -546,12 +591,12 @@ class AlphaSlider extends StatefulWidget {
   const AlphaSlider({
     Key key,
     this.trackHeight = 12.0,
-    this.alpha = _maxalpha,
+    this.alpha = 1.0,
     this.onAlphaChanged,
     this.color = Colors.grey,
     this.alphaColor = _alphaColor,
   })  : assert(trackHeight != null),
-        assert(alpha != null && alpha >= 0 && alpha <= _maxalpha),
+        assert(alpha != null && alpha >= 0.0 && alpha <= 1.0),
         assert(color != null),
         assert(alphaColor != null),
         super(key: key);
@@ -592,10 +637,11 @@ class _AlphaSliderState extends State<AlphaSlider> {
           overlayColor: color.withOpacity(0.33)),
       child: Slider(
         value: _alpha,
-        max: _maxalpha,
+        max: 1.0,
         onChanged: (value) {
           setState(() => _alpha = value);
-          if (widget.onAlphaChanged != null) widget.onAlphaChanged(value);
+          final onAlphaChanged = widget.onAlphaChanged;
+          if (onAlphaChanged != null) onAlphaChanged(value);
         },
       ),
     );
