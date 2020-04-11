@@ -728,6 +728,7 @@ class _AlphaSliderState extends State<AlphaSlider> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     final color = widget.color;
