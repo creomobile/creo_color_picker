@@ -32,7 +32,8 @@ class _ColorPickerExamplePageState extends State<ColorPickerExamplePage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(width: 300, height: 400, child: ColorPicker()),
+              SizedBox(
+                  width: 300, height: 400, child: ColorPicker(withAlpha: true)),
               const SizedBox(width: 16),
               // Column(
               //   mainAxisSize: MainAxisSize.min,

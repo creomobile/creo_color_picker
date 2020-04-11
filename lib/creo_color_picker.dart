@@ -47,12 +47,12 @@ class ColorPicker extends StatefulWidget {
   final InputDecoration colorHexDecoration;
 
   @override
-  _ColorPickerState createState() => _ColorPickerState(color);
+  _ColorPickerState createState() => _ColorPickerState(color, withAlpha);
 }
 
 class _ColorPickerState extends State<ColorPicker> {
-  _ColorPickerState(Color color) {
-    _updateColor(color);
+  _ColorPickerState(Color color, bool withAlpha) {
+    _updateColor(color, withAlpha);
   }
 
   Color _color;
@@ -71,25 +71,34 @@ class _ColorPickerState extends State<ColorPicker> {
         widget.colorHexDecoration != oldWidget.colorHexDecoration) {
       update = true;
     }
+    final withAlpha = widget.withAlpha;
+    if (withAlpha != oldWidget.withAlpha) {
+      if (withAlpha) {
+        _alpha = 1.0;
+      } else {
+        _color = _color.withOpacity(1.0);
+      }
+    }
     final color = widget.color;
     if (color != oldWidget.color && color != _color) {
-      _updateColor(color);
+      _updateColor(color, widget.withAlpha);
       update = true;
     }
     if (update) setState(() {});
   }
 
-  void _updateColor(Color color) {
+  void _updateColor(Color color, bool withAlpha) {
     _color = color;
     _rainbowPosition = RainbowSlider.getPosition(color);
     _rainbowColor = RainbowSlider.getColor(_rainbowPosition);
     _palettePosition = Palette.getPosition(color);
     _paletteColor = color.withOpacity(1.0);
-    _alpha = color.opacity;
+    _alpha = withAlpha ? color.opacity : 1.0;
   }
 
   void _updateAlpha() {
-    _color = _paletteColor.withOpacity(_alpha);
+    _color =
+        widget.withAlpha ? _paletteColor.withOpacity(_alpha) : _paletteColor;
     setState(() {});
     final onColorChanged = widget.onColorChanged;
     if (onColorChanged != null) onColorChanged(_color);
@@ -102,7 +111,8 @@ class _ColorPickerState extends State<ColorPicker> {
           height: widget.colorHexHeight,
           child: ColorHex(
             color: _color,
-            onColorChanged: (color) => setState(() => _updateColor(color)),
+            onColorChanged: (color) =>
+                setState(() => _updateColor(color, widget.withAlpha)),
             withAlpha: widget.withAlpha,
             decoration: widget.colorHexDecoration,
           ),
@@ -129,14 +139,15 @@ class _ColorPickerState extends State<ColorPicker> {
             _updateAlpha();
           },
         ),
-        AlphaSlider(
-          alpha: _alpha,
-          color: _paletteColor,
-          onAlphaChanged: (alpha) {
-            _alpha = alpha;
-            _updateAlpha();
-          },
-        ),
+        if (widget.withAlpha)
+          AlphaSlider(
+            alpha: _alpha,
+            color: _paletteColor,
+            onAlphaChanged: (alpha) {
+              _alpha = alpha;
+              _updateAlpha();
+            },
+          ),
       ]);
 }
 
