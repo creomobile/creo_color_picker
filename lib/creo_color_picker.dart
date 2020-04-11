@@ -8,8 +8,6 @@ import 'package:flutter/material.dart';
 // * consts
 
 const _mindouble = 0.00001;
-const _colorHexDecoration = InputDecoration(
-    border: OutlineInputBorder(), labelText: 'Hex', prefix: Text('#'));
 const _rainbow = LinearGradient(colors: [
   Color(0xffff0000),
   Color(0xffffff00),
@@ -27,27 +25,83 @@ typedef ColorPositionChanged<TPosition> = Function(
 
 // * context
 
+/// Common parameters for color picker widgets.
 class ColorPickerParameters {
   const ColorPickerParameters({
     this.trackHeight,
+    this.alphaRectSize,
     this.alphaColor,
+    this.colorHexInputDecoration,
+    this.paletteCursorSize,
+    this.paletteCursorColor,
+    this.paletteCursorWidth,
+    this.colorHexHeight,
+    this.withAlpha,
   });
 
   static const defaultParameters = ColorPickerParameters(
     trackHeight: 12.0,
+    alphaRectSize: 6.0,
     alphaColor: Color(0xffe0e0e0),
+    colorHexInputDecoration: InputDecoration(
+        border: OutlineInputBorder(), labelText: 'Hex', prefix: Text('#')),
+    paletteCursorSize: 24.0,
+    paletteCursorColor: Colors.white,
+    paletteCursorWidth: 2.0,
+    colorHexHeight: 76.0,
+    withAlpha: true,
   );
 
-  /// Determine track height for [RainbowSlider] and [AlphaSlider]
+  /// Determine track height in [RainbowSlider] and [AlphaSlider]
   final double trackHeight;
 
-  /// Determine color cells for alpha background in [ColorHex] and [AlphaSlider]
+  /// Determine size of rectangles for alpha background in [ColorHex]
+  final double alphaRectSize;
+
+  /// Determine color rectangles for alpha background in [ColorHex] and [AlphaSlider]
   final Color alphaColor;
 
-  ColorPickerParameters copyWith(double trackHeight, Color alphaColor) =>
+  /// Determine decoration for the input in [ColorHex]
+  final InputDecoration colorHexInputDecoration;
+
+  /// Determine cursor size in [Palette]
+  final double paletteCursorSize;
+
+  /// Determine cursor color in [Palette]
+  final Color paletteCursorColor;
+
+  /// Determine cursor width in [Palette]
+  final double paletteCursorWidth;
+
+  /// Determine cursor height of [ColorHex] in [ColorPicker]
+  final double colorHexHeight;
+
+  /// Determine possibility of alpha setting for color in [ColorHex] and [ColorPicker]
+  final bool withAlpha;
+
+  /// Creates a copy of this color picker parameters but with the given fields replaced with
+  ColorPickerParameters copyWith(
+    double trackHeight,
+    double alphaRectSize,
+    Color alphaColor,
+    InputDecoration colorHexInputDecoration,
+    double paletteCursorSize,
+    Color paletteCursorColor,
+    double paletteCursorWidth,
+    double colorHexHeight,
+    bool withAlpha,
+  ) =>
       ColorPickerParameters(
         trackHeight: trackHeight ?? this.trackHeight,
+        alphaRectSize: alphaRectSize ?? this.alphaRectSize,
         alphaColor: alphaColor ?? this.alphaColor,
+        colorHexInputDecoration:
+            colorHexInputDecoration ?? this.colorHexInputDecoration,
+        paletteCursorSize: paletteCursorSize ?? this.paletteCursorSize,
+        paletteCursorColor: paletteCursorColor ?? this.paletteCursorColor,
+        paletteCursorWidth: paletteCursorWidth ?? this.paletteCursorWidth,
+        colorHexHeight: colorHexHeight ?? this.colorHexHeight,
+        withAlpha: withAlpha ?? this.withAlpha,
       );
 }
 
@@ -77,7 +131,15 @@ class ColorPickerContext extends StatelessWidget {
     final my = parameters;
     final merged = ColorPickerParameters(
       trackHeight: my.trackHeight ?? def.trackHeight,
+      alphaRectSize: my.alphaRectSize ?? def.alphaRectSize,
       alphaColor: my.alphaColor ?? def.alphaColor,
+      colorHexInputDecoration:
+          my.colorHexInputDecoration ?? def.colorHexInputDecoration,
+      paletteCursorSize: my.paletteCursorSize ?? def.paletteCursorSize,
+      paletteCursorColor: my.paletteCursorColor ?? def.paletteCursorColor,
+      paletteCursorWidth: my.paletteCursorWidth ?? def.paletteCursorWidth,
+      colorHexHeight: my.colorHexHeight ?? def.colorHexHeight,
+      withAlpha: my.withAlpha ?? def.withAlpha,
     );
 
     return ColorPickerContextData(this, child, merged);
@@ -106,7 +168,6 @@ class ColorPickerCombo extends StatefulWidget {
     this.onColorChanged,
     this.withAlpha = true,
     this.colorHexHeight = 76.0,
-    this.colorHexDecoration = _colorHexDecoration,
   })  : assert(color != null),
         assert(withAlpha != null),
         assert(colorHexHeight != null),
@@ -116,7 +177,6 @@ class ColorPickerCombo extends StatefulWidget {
   final ValueChanged<Color> onColorChanged;
   final bool withAlpha;
   final double colorHexHeight;
-  final InputDecoration colorHexDecoration;
 
   @override
   _ColorPickerComboState createState() => _ColorPickerComboState();
@@ -134,29 +194,17 @@ class ColorPicker extends StatefulWidget {
     Key key,
     this.color = const Color(0xffff0000),
     this.onColorChanged,
-    this.withAlpha = true,
-    this.colorHexHeight = 76.0,
-    this.colorHexDecoration = _colorHexDecoration,
   })  : assert(color != null),
-        assert(withAlpha != null),
-        assert(colorHexHeight != null),
         super(key: key);
 
   final Color color;
   final ValueChanged<Color> onColorChanged;
-  final bool withAlpha;
-  final double colorHexHeight;
-  final InputDecoration colorHexDecoration;
 
   @override
-  _ColorPickerState createState() => _ColorPickerState(color, withAlpha);
+  _ColorPickerState createState() => _ColorPickerState();
 }
 
 class _ColorPickerState extends State<ColorPicker> {
-  _ColorPickerState(Color color, bool withAlpha) {
-    _updateColor(color, withAlpha);
-  }
-
   Color _color;
   double _rainbowPosition;
   Color _rainbowColor;
@@ -167,26 +215,24 @@ class _ColorPickerState extends State<ColorPicker> {
   @override
   void didUpdateWidget(ColorPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
-    var update = false;
-    if (widget.withAlpha != oldWidget.withAlpha ||
-        widget.colorHexHeight != oldWidget.colorHexHeight ||
-        widget.colorHexDecoration != oldWidget.colorHexDecoration) {
-      update = true;
-    }
-    final withAlpha = widget.withAlpha;
-    if (withAlpha != oldWidget.withAlpha) {
-      if (withAlpha) {
-        _alpha = 1.0;
-      } else {
-        _color = _color.withOpacity(1.0);
-      }
-    }
+    final parameters = ColorPickerContext.of(context)?.parameters ??
+        ColorPickerParameters.defaultParameters;
+    final withAlpha = parameters.withAlpha;
     final color = widget.color;
     if (color != oldWidget.color && color != _color) {
-      _updateColor(color, widget.withAlpha);
-      update = true;
+      _updateColor(color, withAlpha);
+      setState(() {});
     }
-    if (update) setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_color != null) return;
+    final parameters = ColorPickerContext.of(context)?.parameters ??
+        ColorPickerParameters.defaultParameters;
+    final withAlpha = parameters.withAlpha;
+    _updateColor(widget.color, withAlpha);
   }
 
   void _updateColor(Color color, bool withAlpha) {
@@ -198,59 +244,60 @@ class _ColorPickerState extends State<ColorPicker> {
     _alpha = withAlpha ? color.opacity : 1.0;
   }
 
-  void _updateAlpha() {
-    _color =
-        widget.withAlpha ? _paletteColor.withOpacity(_alpha) : _paletteColor;
+  void _updateAlpha(bool withAlpha) {
+    _color = withAlpha ? _paletteColor.withOpacity(_alpha) : _paletteColor;
     setState(() {});
     final onColorChanged = widget.onColorChanged;
     if (onColorChanged != null) onColorChanged(_color);
   }
 
   @override
-  Widget build(BuildContext context) =>
-      Column(mainAxisSize: MainAxisSize.min, children: [
-        SizedBox(
-          height: widget.colorHexHeight,
-          child: ColorHex(
-            color: _color,
-            onColorChanged: (color) =>
-                setState(() => _updateColor(color, widget.withAlpha)),
-            withAlpha: widget.withAlpha,
-            decoration: widget.colorHexDecoration,
-          ),
+  Widget build(BuildContext context) {
+    final parameters = ColorPickerContext.of(context)?.parameters ??
+        ColorPickerParameters.defaultParameters;
+    final withAlpha = parameters.withAlpha;
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      SizedBox(
+        height: parameters.colorHexHeight,
+        child: ColorHex(
+          color: _color,
+          onColorChanged: (color) =>
+              setState(() => _updateColor(color, withAlpha)),
         ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: Palette(
-            rainbowColor: _rainbowColor,
-            position: _palettePosition,
-            onPositionChanged: (position, color) {
-              _palettePosition = position;
-              _paletteColor = color;
-              _updateAlpha();
-            },
-          ),
-        ),
-        const SizedBox(height: 16),
-        RainbowSlider(
-          position: _rainbowPosition,
+      ),
+      const SizedBox(height: 16),
+      Expanded(
+        child: Palette(
+          rainbowColor: _rainbowColor,
+          position: _palettePosition,
           onPositionChanged: (position, color) {
-            _rainbowPosition = position;
-            _rainbowColor = color;
-            _paletteColor = Palette.getColor(_rainbowColor, _palettePosition);
-            _updateAlpha();
+            _palettePosition = position;
+            _paletteColor = color;
+            _updateAlpha(withAlpha);
           },
         ),
-        if (widget.withAlpha)
-          AlphaSlider(
-            alpha: _alpha,
-            color: _paletteColor,
-            onAlphaChanged: (alpha) {
-              _alpha = alpha;
-              _updateAlpha();
-            },
-          ),
-      ]);
+      ),
+      const SizedBox(height: 16),
+      RainbowSlider(
+        position: _rainbowPosition,
+        onPositionChanged: (position, color) {
+          _rainbowPosition = position;
+          _rainbowColor = color;
+          _paletteColor = Palette.getColor(_rainbowColor, _palettePosition);
+          _updateAlpha(withAlpha);
+        },
+      ),
+      if (withAlpha)
+        AlphaSlider(
+          alpha: _alpha,
+          color: _paletteColor,
+          onAlphaChanged: (alpha) {
+            _alpha = alpha;
+            _updateAlpha(withAlpha);
+          },
+        ),
+    ]);
+  }
 }
 
 // * ColorHex
@@ -260,31 +307,19 @@ class ColorHex extends StatefulWidget {
     Key key,
     this.color = const Color(0xffff0000),
     this.onColorChanged,
-    this.withAlpha = true,
-    this.alphaRectSize = 6.0,
-    this.decoration = _colorHexDecoration,
   })  : assert(color != null),
-        assert(withAlpha != null),
-        assert(alphaRectSize != null),
         super(key: key);
 
   final Color color;
   final ValueChanged<Color> onColorChanged;
-  final bool withAlpha;
-  final double alphaRectSize;
-  final InputDecoration decoration;
 
   @override
-  _ColorHexState createState() => _ColorHexState(color, withAlpha);
+  _ColorHexState createState() => _ColorHexState();
 }
 
 class _ColorHexState extends State<ColorHex> {
-  _ColorHexState(Color color, bool withAlpha)
-      : _color = _getColor(color, withAlpha),
-        _controller =
-            TextEditingController(text: _getColorHex(color, withAlpha));
   Color _color;
-  final TextEditingController _controller;
+  TextEditingController _controller;
   String _errorText;
 
   static Color _getColor(Color color, bool withAlpha) =>
@@ -300,15 +335,24 @@ class _ColorHexState extends State<ColorHex> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    String saveText;
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_color != null) return;
+    final parameters = ColorPickerContext.of(context)?.parameters ??
+        ColorPickerParameters.defaultParameters;
+    final withAlpha = parameters.withAlpha;
+    final color = widget.color;
+    _color = _getColor(color, withAlpha);
+    _controller = TextEditingController(text: _getColorHex(color, withAlpha));
 
+    String saveText;
     _controller.addListener(() {
       final text = _controller.text;
       if (text == saveText) return;
       saveText = text;
-      final withAlpha = widget.withAlpha;
+      final parameters = ColorPickerContext.of(context)?.parameters ??
+          ColorPickerParameters.defaultParameters;
+      final withAlpha = parameters.withAlpha;
       if ((text?.length ?? 0) != (withAlpha ? 8 : 6)) {
         _setError(true);
         return;
@@ -324,8 +368,6 @@ class _ColorHexState extends State<ColorHex> {
         _color = color;
         if (widget.onColorChanged != null) widget.onColorChanged(color);
       }
-
-      _setError(false);
     });
   }
 
@@ -334,9 +376,10 @@ class _ColorHexState extends State<ColorHex> {
     super.didUpdateWidget(oldWidget);
     final widget = this.widget;
     final color = widget.color;
-    final withAlpha = widget.withAlpha;
-    if ((color != oldWidget.color && color != _color) ||
-        withAlpha != oldWidget.withAlpha) {
+    if ((color != oldWidget.color && color != _color)) {
+      final parameters = ColorPickerContext.of(context)?.parameters ??
+          ColorPickerParameters.defaultParameters;
+      final withAlpha = parameters.withAlpha;
       setState(() => _color = _getColor(color, withAlpha));
       _controller.text = _getColorHex(color, withAlpha);
     }
@@ -349,9 +392,9 @@ class _ColorHexState extends State<ColorHex> {
 
   @override
   Widget build(BuildContext context) {
-    final alphaRectSize = widget.alphaRectSize;
     final parameters = ColorPickerContext.of(context)?.parameters ??
         ColorPickerParameters.defaultParameters;
+    final alphaRectSize = parameters.alphaRectSize;
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Expanded(
         child: Container(
@@ -383,7 +426,8 @@ class _ColorHexState extends State<ColorHex> {
             padding: const EdgeInsets.only(top: 8.0),
             child: TextField(
                 controller: _controller,
-                decoration: widget.decoration.copyWith(errorText: _errorText)),
+                decoration: parameters.colorHexInputDecoration
+                    .copyWith(errorText: _errorText)),
           )),
     ]);
   }
@@ -430,24 +474,13 @@ class Palette extends StatefulWidget {
     this.rainbowColor = const Color(0xffff0000),
     this.position = Offset.zero,
     this.onPositionChanged,
-    this.cursorSize = 24.0,
-    this.cursorColor = Colors.white,
-    this.cursorWidth = 2.0,
-    this.borderRadius = const BorderRadius.all(Radius.circular(6)),
   })  : assert(rainbowColor != null),
         assert(position != null),
-        assert(cursorSize != null),
-        assert(cursorColor != null),
-        assert(cursorWidth != null),
         super(key: key);
 
   final Color rainbowColor;
   final Offset position;
   final ColorPositionChanged<Offset> onPositionChanged;
-  final double cursorSize;
-  final Color cursorColor;
-  final double cursorWidth;
-  final BorderRadius borderRadius;
 
   static Offset getPosition(Color color) {
     final channels = _getSortedChannels(color);
@@ -501,7 +534,9 @@ class _PaletteState extends State<Palette> {
   @override
   Widget build(BuildContext context) {
     final widget = this.widget;
-    final cursorSize = widget.cursorSize;
+    final parameters = ColorPickerContext.of(context)?.parameters ??
+        ColorPickerParameters.defaultParameters;
+    final cursorSize = parameters.paletteCursorSize;
     final half = cursorSize / 2;
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
@@ -513,7 +548,8 @@ class _PaletteState extends State<Palette> {
             _updatePosition(details.localPosition, width, height),
         child: Container(
           clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(borderRadius: widget.borderRadius),
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(parameters.alphaRectSize)),
           child: Stack(
             children: [
               SizedBox(
@@ -532,7 +568,8 @@ class _PaletteState extends State<Palette> {
                     color: _color,
                     borderRadius: BorderRadius.circular(half),
                     border: Border.all(
-                        color: widget.cursorColor, width: widget.cursorWidth),
+                        color: parameters.paletteCursorColor,
+                        width: parameters.paletteCursorWidth),
                   ),
                 ),
               ),
@@ -727,7 +764,6 @@ class _AlphaSliderState extends State<AlphaSlider> {
       setState(() => _alpha = alpha);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
