@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 // * consts
 
 const _mindouble = 0.00001;
-const _alphaColor = Color(0xffE0E0E0);
 const _colorHexDecoration = InputDecoration(
     border: OutlineInputBorder(), labelText: 'Hex', prefix: Text('#'));
 const _rainbow = LinearGradient(colors: [
@@ -29,15 +28,27 @@ typedef ColorPositionChanged<TPosition> = Function(
 // * context
 
 class ColorPickerParameters {
-  const ColorPickerParameters({this.trackHeight});
+  const ColorPickerParameters({
+    this.trackHeight,
+    this.alphaColor,
+  });
 
-  static const defaultParameters = ColorPickerParameters(trackHeight: 12.0);
+  static const defaultParameters = ColorPickerParameters(
+    trackHeight: 12.0,
+    alphaColor: Color(0xffe0e0e0),
+  );
 
-  /// Determine track height for [AlphaSlider] and [RainbowSlider]
+  /// Determine track height for [RainbowSlider] and [AlphaSlider]
   final double trackHeight;
 
-  ColorPickerParameters copyWith(double trackHeight) =>
-      ColorPickerParameters(trackHeight: trackHeight ?? this.trackHeight);
+  /// Determine color cells for alpha background in [ColorHex] and [AlphaSlider]
+  final Color alphaColor;
+
+  ColorPickerParameters copyWith(double trackHeight, Color alphaColor) =>
+      ColorPickerParameters(
+        trackHeight: trackHeight ?? this.trackHeight,
+        alphaColor: alphaColor ?? this.alphaColor,
+      );
 }
 
 /// Allows to set [ColorPickerParameters] for all [ColorPicker], [ColorPickerCombo]
@@ -66,6 +77,7 @@ class ColorPickerContext extends StatelessWidget {
     final my = parameters;
     final merged = ColorPickerParameters(
       trackHeight: my.trackHeight ?? def.trackHeight,
+      alphaColor: my.alphaColor ?? def.alphaColor,
     );
 
     return ColorPickerContextData(this, child, merged);
@@ -249,19 +261,16 @@ class ColorHex extends StatefulWidget {
     this.color = const Color(0xffff0000),
     this.onColorChanged,
     this.withAlpha = true,
-    this.alphaColor = _alphaColor,
     this.alphaRectSize = 6.0,
     this.decoration = _colorHexDecoration,
   })  : assert(color != null),
         assert(withAlpha != null),
-        assert(alphaColor != null),
         assert(alphaRectSize != null),
         super(key: key);
 
   final Color color;
   final ValueChanged<Color> onColorChanged;
   final bool withAlpha;
-  final Color alphaColor;
   final double alphaRectSize;
   final InputDecoration decoration;
 
@@ -340,9 +349,9 @@ class _ColorHexState extends State<ColorHex> {
 
   @override
   Widget build(BuildContext context) {
-    final widget = this.widget;
     final alphaRectSize = widget.alphaRectSize;
-    final alphaColor = widget.alphaColor;
+    final parameters = ColorPickerContext.of(context)?.parameters ??
+        ColorPickerParameters.defaultParameters;
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Expanded(
         child: Container(
@@ -357,7 +366,8 @@ class _ColorHexState extends State<ColorHex> {
                   height: constraints.maxHeight,
                   width: constraints.maxWidth,
                   child: CustomPaint(
-                    painter: _AlphaPainter(alphaColor, alphaRectSize),
+                    painter:
+                        _AlphaPainter(parameters.alphaColor, alphaRectSize),
                   ),
                 );
               }),
@@ -693,16 +703,13 @@ class AlphaSlider extends StatefulWidget {
     this.alpha = 1.0,
     this.onAlphaChanged,
     this.color = const Color(0xffff0000),
-    this.alphaColor = _alphaColor,
   })  : assert(alpha != null && alpha >= 0.0 && alpha <= 1.0),
         assert(color != null),
-        assert(alphaColor != null),
         super(key: key);
 
   final double alpha;
   final ValueChanged<double> onAlphaChanged;
   final Color color;
-  final Color alphaColor;
 
   @override
   _AlphaSliderState createState() => _AlphaSliderState(alpha);
@@ -723,7 +730,6 @@ class _AlphaSliderState extends State<AlphaSlider> {
 
   @override
   Widget build(BuildContext context) {
-    final widget = this.widget;
     final color = widget.color;
     final parameters = ColorPickerContext.of(context)?.parameters ??
         ColorPickerParameters.defaultParameters;
@@ -731,7 +737,7 @@ class _AlphaSliderState extends State<AlphaSlider> {
     return SliderTheme(
       data: SliderThemeData(
           trackShape: _AlphaSliderTrackShape(
-              color: color, alphaColor: widget.alphaColor),
+              color: color, alphaColor: parameters.alphaColor),
           trackHeight: parameters.trackHeight,
           thumbColor: color,
           overlayColor: color.withOpacity(0.33)),
