@@ -75,10 +75,10 @@ class ColorPickerParameters {
   /// Determine track height in [RainbowSlider] and [AlphaSlider]
   final double trackHeight;
 
-  /// Determine size of rectangles for alpha background in [ColorHex]
+  /// Determine size of rectangles for alpha background in [ColorContainer]
   final double alphaRectSize;
 
-  /// Determine color rectangles for alpha background in [ColorHex] and [AlphaSlider]
+  /// Determine color rectangles for alpha background in [ColorContainer] and [AlphaSlider]
   final Color alphaColor;
 
   /// Determine decoration for the input in [ColorHex]
@@ -93,7 +93,7 @@ class ColorPickerParameters {
   /// Determine cursor width in [Palette]
   final double paletteCursorWidth;
 
-  /// Determine cursor height of [ColorHex] in [ColorPicker]
+  /// Determine cursor height of [ColorContainer] in [ColorPicker]
   final double colorHexHeight;
 
   /// Determine possibility of alpha setting for color in [ColorHex] and [ColorPicker]
@@ -409,11 +409,21 @@ class _ColorPickerState extends State<ColorPicker> {
     return Column(mainAxisSize: MainAxisSize.min, children: [
       SizedBox(
         height: parameters.colorHexHeight,
-        child: ColorHex(
-          color: _color,
-          onColorChanged: (color) =>
-              setState(() => _updateColor(color, withAlpha)),
-        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: ColorContainer(color: _color)),
+          const SizedBox(width: 16),
+          SizedBox(
+            width: 116,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: ColorHex(
+                color: _color,
+                onColorChanged: (color) =>
+                    setState(() => _updateColor(color, withAlpha)),
+              ),
+            ),
+          ),
+        ]),
       ),
       const SizedBox(height: 16),
       Expanded(
@@ -544,19 +554,11 @@ class _ColorHexState extends State<ColorHex> {
   Widget build(BuildContext context) {
     final parameters = ColorPickerContext.of(context)?.parameters ??
         ColorPickerParameters.defaultParameters;
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Expanded(child: ColorContainer(color: _color)),
-      const SizedBox(width: 16),
-      SizedBox(
-          width: 116,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: TextField(
-                controller: _controller,
-                decoration: parameters.colorHexInputDecoration
-                    .copyWith(errorText: _errorText)),
-          )),
-    ]);
+    return TextField(
+      controller: _controller,
+      decoration:
+          parameters.colorHexInputDecoration.copyWith(errorText: _errorText),
+    );
   }
 
   @override
