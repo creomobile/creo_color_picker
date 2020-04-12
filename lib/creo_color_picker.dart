@@ -544,31 +544,8 @@ class _ColorHexState extends State<ColorHex> {
   Widget build(BuildContext context) {
     final parameters = ColorPickerContext.of(context)?.parameters ??
         ColorPickerParameters.defaultParameters;
-    final alphaRectSize = parameters.alphaRectSize;
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Expanded(
-        child: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(alphaRectSize),
-          ),
-          child: Stack(
-            children: [
-              LayoutBuilder(builder: (context, constraints) {
-                return SizedBox(
-                  height: constraints.maxHeight,
-                  width: constraints.maxWidth,
-                  child: CustomPaint(
-                    painter:
-                        _AlphaPainter(parameters.alphaColor, alphaRectSize),
-                  ),
-                );
-              }),
-              Container(color: _color),
-            ],
-          ),
-        ),
-      ),
+      Expanded(child: ColorContainer(color: _color)),
       const SizedBox(width: 16),
       SizedBox(
           width: 116,
@@ -586,6 +563,42 @@ class _ColorHexState extends State<ColorHex> {
   void dispose() {
     super.dispose();
     _controller.dispose();
+  }
+}
+
+// * Color Container
+
+class ColorContainer extends StatelessWidget {
+  const ColorContainer({Key key, this.color}) : super(key: key);
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final parameters = ColorPickerContext.of(context)?.parameters ??
+        ColorPickerParameters.defaultParameters;
+    final alphaRectSize = parameters.alphaRectSize;
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(alphaRectSize),
+      ),
+      child: Stack(
+        children: [
+          LayoutBuilder(builder: (context, constraints) {
+            return SizedBox(
+              height: constraints.maxHeight,
+              width: constraints.maxWidth,
+              child: CustomPaint(
+                painter: _AlphaPainter(parameters.alphaColor, alphaRectSize),
+              ),
+            );
+          }),
+          Container(color: color),
+        ],
+      ),
+    );
   }
 }
 
@@ -615,8 +628,6 @@ class _AlphaPainter extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
-
-// * Color Container
 
 // * Palette
 
