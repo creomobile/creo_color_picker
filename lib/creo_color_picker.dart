@@ -23,6 +23,19 @@ const _rainbow = LinearGradient(colors: [
 typedef ColorPositionChanged<TPosition> = Function(
     TPosition position, Color color);
 
+/// Define combo color picker text title placement
+enum ColorPickerComboTextTitlePlacement { label, placeholder }
+
+/// Signature for combo color picker title decorator builder
+typedef ColorPickerTitleDecoratorBuilder = Widget Function(
+  BuildContext context,
+  ColorPickerParameters colorPickerParameters,
+  ComboParameters comboParameters,
+  ComboController controller,
+  String title,
+  Widget child,
+);
+
 // * context
 
 /// Common parameters for color picker widgets.
@@ -37,20 +50,27 @@ class ColorPickerParameters {
     this.paletteCursorWidth,
     this.colorHexHeight,
     this.withAlpha,
+    this.comboTextTitlePlacement,
+    this.titleDecoratorBuilder,
+    this.comboPopupSize,
+    this.comboColorContainerHeight,
   });
 
   static const defaultParameters = ColorPickerParameters(
-    trackHeight: 12.0,
-    alphaRectSize: 6.0,
-    alphaColor: Color(0xffe0e0e0),
-    colorHexInputDecoration: InputDecoration(
-        border: OutlineInputBorder(), labelText: 'Hex', prefix: Text('#')),
-    paletteCursorSize: 24.0,
-    paletteCursorColor: Colors.white,
-    paletteCursorWidth: 2.0,
-    colorHexHeight: 76.0,
-    withAlpha: true,
-  );
+      trackHeight: 12.0,
+      alphaRectSize: 6.0,
+      alphaColor: Color(0xffe0e0e0),
+      colorHexInputDecoration: InputDecoration(
+          border: OutlineInputBorder(), labelText: 'Hex', prefix: Text('#')),
+      paletteCursorSize: 24.0,
+      paletteCursorColor: Colors.white,
+      paletteCursorWidth: 2.0,
+      colorHexHeight: 76.0,
+      withAlpha: true,
+      comboTextTitlePlacement: ColorPickerComboTextTitlePlacement.label,
+      titleDecoratorBuilder: buildDefaultTitleDecorator,
+      comboPopupSize: Size(0, 400),
+      comboColorContainerHeight: 24.0);
 
   /// Determine track height in [RainbowSlider] and [AlphaSlider]
   final double trackHeight;
@@ -79,6 +99,20 @@ class ColorPickerParameters {
   /// Determine possibility of alpha setting for color in [ColorHex] and [ColorPicker]
   final bool withAlpha;
 
+  /// Define combo color picker text title placement
+  /// [label] as [InputDecoration.labelText]
+  /// [placeholder] as [InputDecoration.hintText]
+  final ColorPickerComboTextTitlePlacement comboTextTitlePlacement;
+
+  /// Define combo title decorator builder for color picker combo
+  final ColorPickerTitleDecoratorBuilder titleDecoratorBuilder;
+
+  /// Determine popup size in [ColorPickerCombo]
+  final Size comboPopupSize;
+
+  /// Determine color container height in [ColorPickerCombo]
+  final double comboColorContainerHeight;
+
   /// Creates a copy of this color picker parameters but with the given fields replaced with
   ColorPickerParameters copyWith(
     double trackHeight,
@@ -90,6 +124,10 @@ class ColorPickerParameters {
     double paletteCursorWidth,
     double colorHexHeight,
     bool withAlpha,
+    ColorPickerComboTextTitlePlacement comboTextTitlePlacement,
+    ColorPickerTitleDecoratorBuilder titleDecoratorBuilder,
+    Size comboPopupSize,
+    double comboColorContainerHeight,
   ) =>
       ColorPickerParameters(
         trackHeight: trackHeight ?? this.trackHeight,
@@ -102,7 +140,58 @@ class ColorPickerParameters {
         paletteCursorWidth: paletteCursorWidth ?? this.paletteCursorWidth,
         colorHexHeight: colorHexHeight ?? this.colorHexHeight,
         withAlpha: withAlpha ?? this.withAlpha,
+        comboTextTitlePlacement:
+            comboTextTitlePlacement ?? this.comboTextTitlePlacement,
+        titleDecoratorBuilder:
+            titleDecoratorBuilder ?? this.titleDecoratorBuilder,
+        comboPopupSize: comboPopupSize ?? this.comboPopupSize,
+        comboColorContainerHeight:
+            comboColorContainerHeight ?? this.comboColorContainerHeight,
       );
+
+  /// Default builder for [titleDecoratorBuilder]
+  static Widget buildDefaultTitleDecorator(
+    BuildContext context,
+    ColorPickerParameters colorPickerParameters,
+    ComboParameters comboParameters,
+    ComboController controller,
+    String title,
+    Widget child,
+  ) {
+    final theme = Theme.of(context);
+    final titlePlacement = colorPickerParameters.comboTextTitlePlacement;
+    final decoration = InputDecoration(
+            labelText: titlePlacement == null ||
+                    titlePlacement == ColorPickerComboTextTitlePlacement.label
+                ? title
+                : null,
+            hintText:
+                titlePlacement == ColorPickerComboTextTitlePlacement.placeholder
+                    ? title
+                    : null,
+            border: OutlineInputBorder())
+        .applyDefaults(theme.inputDecorationTheme)
+        .copyWith(
+          enabled: comboParameters.enabled,
+        );
+    return Stack(
+      children: [
+        Material(
+            borderRadius:
+                (decoration.enabledBorder as OutlineInputBorder)?.borderRadius,
+            child: child),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: InputDecorator(
+                decoration: decoration,
+                isFocused: controller.opened,
+                isEmpty: false,
+                expands: true),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// Allows to set [ColorPickerParameters] for all [ColorPicker], [ColorPickerCombo]
@@ -140,6 +229,13 @@ class ColorPickerContext extends StatelessWidget {
       paletteCursorWidth: my.paletteCursorWidth ?? def.paletteCursorWidth,
       colorHexHeight: my.colorHexHeight ?? def.colorHexHeight,
       withAlpha: my.withAlpha ?? def.withAlpha,
+      comboTextTitlePlacement:
+          my.comboTextTitlePlacement ?? def.comboTextTitlePlacement,
+      titleDecoratorBuilder:
+          my.titleDecoratorBuilder ?? def.titleDecoratorBuilder,
+      comboPopupSize: my.comboPopupSize ?? def.comboPopupSize,
+      comboColorContainerHeight:
+          my.comboColorContainerHeight ?? def.comboColorContainerHeight,
     );
 
     return ColorPickerContextData(this, child, merged);
@@ -166,25 +262,79 @@ class ColorPickerCombo extends StatefulWidget {
     Key key,
     this.color = const Color(0xffff0000),
     this.onColorChanged,
-    this.withAlpha = true,
-    this.colorHexHeight = 76.0,
+    this.title,
+    this.openedChanged,
+    this.hoveredChanged,
+    this.onTap,
   })  : assert(color != null),
-        assert(withAlpha != null),
-        assert(colorHexHeight != null),
         super(key: key);
 
   final Color color;
+
   final ValueChanged<Color> onColorChanged;
-  final bool withAlpha;
-  final double colorHexHeight;
+
+  /// Combo text title.
+  /// See also: [ColorPickerParameters.comboTextTitlePlacement]
+  final String title;
+
+  /// Callbacks when the popup is opening or closing
+  final ValueChanged<bool> openedChanged;
+
+  /// Callbacks when the mouse pointer enters on or exits from child or popup.
+  final ValueChanged<bool> hoveredChanged;
+
+  /// Called when the user taps on [child].
+  /// Also can be called by 'long tap' event if [ComboParameters.autoOpen]
+  /// is set to [ComboAutoOpen.hovered] and platform is not 'Web'
+  final GestureTapCallback onTap;
 
   @override
   _ColorPickerComboState createState() => _ColorPickerComboState();
 }
 
-class _ColorPickerComboState extends State<ColorPickerCombo> {
+class _ColorPickerComboState extends State<ColorPickerCombo>
+    implements ComboController {
+  final _comboKey = GlobalKey<ComboState>();
+
   @override
-  Widget build(BuildContext context) => Combo(child: Container());
+  bool get opened => _comboKey.currentState?.opened == true;
+
+  @override
+  void open() => _comboKey.currentState?.open();
+
+  @override
+  void close() => _comboKey.currentState?.close();
+
+  @override
+  Widget build(BuildContext context) {
+    final widget = this.widget;
+    final parameters = ColorPickerContext.of(context)?.parameters ??
+        ColorPickerParameters.defaultParameters;
+
+    return ComboContext(
+      parameters: ComboParameters(
+          childDecoratorBuilder:
+              (context, comboParameters, controller, child) =>
+                  parameters.titleDecoratorBuilder(context, parameters,
+                      comboParameters, controller, widget.title, child)),
+      child: Combo(
+        key: _comboKey,
+        child: ListTile(
+            title: Container(
+                height: parameters.comboColorContainerHeight,
+                color: Colors.red,
+                child: const Text(''))),
+        popupBuilder: (context, mirrored) => Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SizedBox.fromSize(
+              size: parameters.comboPopupSize, child: ColorPicker()),
+        ),
+        openedChanged: widget.openedChanged,
+        hoveredChanged: widget.hoveredChanged,
+        onTap: widget.onTap,
+      ),
+    );
+  }
 }
 
 // * ColorPicker
@@ -465,6 +615,8 @@ class _AlphaPainter extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
+
+// * Color Container
 
 // * Palette
 

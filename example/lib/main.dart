@@ -28,6 +28,7 @@ class _ColorPickerExamplePageState extends State<ColorPickerExamplePage> {
             children: [
               SizedBox(width: 300, height: 400, child: ColorPicker()),
               const SizedBox(width: 16),
+              SizedBox(width: 300, child: ColorPickerCombo(title: 'Color Picker Combo')),
             ],
           ),
         ),
