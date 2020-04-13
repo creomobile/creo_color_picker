@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 
 // * consts
 
-const _mindouble = 0.00001;
 const _rainbow = LinearGradient(colors: [
   Color(0xffff0000),
   Color(0xffffff00),
@@ -315,10 +314,11 @@ class _ColorPickerComboState extends State<ColorPickerCombo>
 
     return ComboContext(
       parameters: ComboParameters(
-          childDecoratorBuilder:
-              (context, comboParameters, controller, child) =>
-                  parameters.titleDecoratorBuilder(context, parameters,
-                      comboParameters, controller, widget.title, child)),
+        requiredSpace: parameters.comboPopupSize.height,
+        childDecoratorBuilder: (context, comboParameters, controller, child) =>
+            parameters.titleDecoratorBuilder(context, parameters,
+                comboParameters, controller, widget.title, child),
+      ),
       child: Combo(
         key: _comboKey,
         child: ListTile(
@@ -327,15 +327,16 @@ class _ColorPickerComboState extends State<ColorPickerCombo>
             child: ColorContainer(color: _color),
           ),
         ),
-        popupBuilder: (context, mirrored) => Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: SizedBox.fromSize(
-              size: parameters.comboPopupSize,
+        popupBuilder: (context, mirrored) => SizedBox.fromSize(
+            size: parameters.comboPopupSize,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
               child: ColorPicker(
                 color: _color,
                 onColorChanged: (color) => setState(() => _color = color),
-              )),
-        ),
+                showColorContainer: false,
+              ),
+            )),
         openedChanged: widget.openedChanged,
         hoveredChanged: widget.hoveredChanged,
         onTap: widget.onTap,
@@ -351,11 +352,14 @@ class ColorPicker extends StatefulWidget {
     Key key,
     this.color = const Color(0xffff0000),
     this.onColorChanged,
+    this.showColorContainer = true,
   })  : assert(color != null),
+        assert(showColorContainer != null),
         super(key: key);
 
   final Color color;
   final ValueChanged<Color> onColorChanged;
+  final bool showColorContainer;
 
   @override
   _ColorPickerState createState() => _ColorPickerState();
@@ -404,6 +408,10 @@ class _ColorPickerState extends State<ColorPicker> {
   void _updateAlpha(bool withAlpha) {
     _color = withAlpha ? _paletteColor.withOpacity(_alpha) : _paletteColor;
     setState(() {});
+    _raiseColorChanged();
+  }
+
+  void _raiseColorChanged() {
     final onColorChanged = widget.onColorChanged;
     if (onColorChanged != null) onColorChanged(_color);
   }
@@ -413,25 +421,31 @@ class _ColorPickerState extends State<ColorPicker> {
     final parameters = ColorPickerContext.of(context)?.parameters ??
         ColorPickerParameters.defaultParameters;
     final withAlpha = parameters.withAlpha;
+    final colorHex = ColorHex(
+      color: _color,
+      onColorChanged: (color) {
+        setState(() => _updateColor(color, withAlpha));
+        _raiseColorChanged();
+      },
+    );
     return Column(mainAxisSize: MainAxisSize.min, children: [
-      SizedBox(
-        height: parameters.colorHexHeight,
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: ColorContainer(color: _color)),
-          const SizedBox(width: 16),
-          SizedBox(
-            width: 116,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: ColorHex(
-                color: _color,
-                onColorChanged: (color) =>
-                    setState(() => _updateColor(color, withAlpha)),
+      if (widget.showColorContainer)
+        SizedBox(
+          height: parameters.colorHexHeight,
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: ColorContainer(color: _color)),
+            const SizedBox(width: 16),
+            SizedBox(
+              width: 116,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: colorHex,
               ),
             ),
-          ),
-        ]),
-      ),
+          ]),
+        )
+      else
+        colorHex,
       const SizedBox(height: 16),
       Expanded(
         child: Palette(
@@ -818,9 +832,7 @@ class RainbowSlider extends StatefulWidget {
     final colors = _rainbow.colors;
     final color = colors[index];
     final coef = position - index;
-    return coef < _mindouble
-        ? color
-        : Color.lerp(color, colors[index + 1], coef);
+    return coef < 0.00001 ? color : Color.lerp(color, colors[index + 1], coef);
   }
 
   @override
