@@ -289,11 +289,13 @@ class ColorPickerCombo extends StatefulWidget {
   final GestureTapCallback onTap;
 
   @override
-  _ColorPickerComboState createState() => _ColorPickerComboState();
+  _ColorPickerComboState createState() => _ColorPickerComboState(color);
 }
 
 class _ColorPickerComboState extends State<ColorPickerCombo>
     implements ComboController {
+  _ColorPickerComboState(this._color);
+  Color _color;
   final _comboKey = GlobalKey<ComboState>();
 
   @override
@@ -320,14 +322,19 @@ class _ColorPickerComboState extends State<ColorPickerCombo>
       child: Combo(
         key: _comboKey,
         child: ListTile(
-            title: Container(
-                height: parameters.comboColorContainerHeight,
-                color: Colors.red,
-                child: const Text(''))),
+          title: SizedBox(
+            height: parameters.comboColorContainerHeight,
+            child: ColorContainer(color: _color),
+          ),
+        ),
         popupBuilder: (context, mirrored) => Padding(
           padding: const EdgeInsets.all(8.0),
           child: SizedBox.fromSize(
-              size: parameters.comboPopupSize, child: ColorPicker()),
+              size: parameters.comboPopupSize,
+              child: ColorPicker(
+                color: _color,
+                onColorChanged: (color) => setState(() => _color = color),
+              )),
         ),
         openedChanged: widget.openedChanged,
         hoveredChanged: widget.hoveredChanged,
