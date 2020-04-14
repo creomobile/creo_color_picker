@@ -25,10 +25,23 @@ class _ColorPickerExamplePageState extends State<ColorPickerExamplePage> {
         body: Center(
           child: Row(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(width: 300, height: 400, child: ColorPicker()),
-              const SizedBox(width: 16),
-              SizedBox(width: 300, child: ColorPickerCombo(title: 'Color Picker Combo')),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Color Picker',
+                      style:
+                          const TextStyle(color: Colors.grey, fontSize: 20.0)),
+                  const SizedBox(height: 16.0),
+                  SizedBox(width: 300, height: 400, child: ColorPicker()),
+                ],
+              ),
+              const SizedBox(width: 64),
+              SizedBox(
+                  width: 300,
+                  child: ColorPickerCombo(title: 'Color Picker Combo')),
             ],
           ),
         ),
