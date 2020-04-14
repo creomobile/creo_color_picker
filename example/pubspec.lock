@@ -8,13 +8,20 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.5"
+  charcode:
+    dependency: transitive
+    description:
+      name: charcode
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.1.3"
   collection:
     dependency: transitive
     description:
       name: collection
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.14.11"
+    version: "1.14.12"
   combos:
     dependency: transitive
     description:
@@ -22,6 +29,15 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.2.0"
+  combos_example:
+    dependency: "direct main"
+    description:
+      path: "example/"
+      ref: HEAD
+      resolved-ref: "41227bcceb3ac62b23dea99bb067e5fa2805b78b"
+      url: "https://github.com/creomobile/combos"
+    source: git
+    version: "1.0.0"
   creo_color_picker:
     dependency: "direct main"
     description:
@@ -46,12 +62,19 @@ packages:
     source: git
     version: "0.0.1"
   editors:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: editors
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.0.9"
+    version: "0.0.10"
+  english_words:
+    dependency: transitive
+    description:
+      name: english_words
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "3.1.5"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -64,6 +87,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.1.8"
+  path:
+    dependency: transitive
+    description:
+      name: path
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.7.0"
   pedantic:
     dependency: "direct dev"
     description:
@@ -76,6 +106,34 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.99"
+  source_span:
+    dependency: transitive
+    description:
+      name: source_span
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.7.0"
+  string_scanner:
+    dependency: transitive
+    description:
+      name: string_scanner
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.5"
+  term_glyph:
+    dependency: transitive
+    description:
+      name: term_glyph
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.1.0"
+  titles:
+    dependency: transitive
+    description:
+      name: titles
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.0.4"
   typed_data:
     dependency: transitive
     description:

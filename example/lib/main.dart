@@ -1,4 +1,6 @@
 import 'package:creo_color_picker/creo_color_picker.dart';
+import 'package:demo_items/demo_items.dart';
+import 'package:editors/editors.dart';
 import 'package:flutter/material.dart';
 
 void main() => runApp(const _App());
@@ -46,4 +48,47 @@ class _ColorPickerExamplePageState extends State<ColorPickerExamplePage> {
           ),
         ),
       );
+}
+
+class _ColorPickerDemoItem<TProperties extends ColorPickerProperties>
+    extends DemoItemBase<TProperties> {
+  _ColorPickerDemoItem(
+    Key key,
+    @required TProperties properties,
+    @required ChildBuilder<TProperties> childBuilder,
+  ) : super(key: key, properties: properties, childBuilder: childBuilder);
+
+  @override
+  State<StatefulWidget> createState() {
+    // TODO: implement createState
+    throw UnimplementedError();
+  }
+}
+
+class _ColorPickerDemoItemState{
+  
+}
+
+
+/*
+
+class _CalendartDemoItem<TProperties extends CalendarProperties>
+    extends DemoItemBase<TProperties> {
+  const _CalendartDemoItem({
+    Key key,
+    @required TProperties properties,
+    @required ChildBuilder<TProperties> childBuilder,
+  }) : super(key: key, properties: properties, childBuilder: childBuilder);
+
+  @override
+  _CalendartDemoItemState<TProperties> createState() =>
+      _CalendartDemoItemState<TProperties>();
+}
+
+
+*/
+
+class ColorPickerProperties {
+  final showColorContainer =
+      BoolEditor(title: 'Show Color Container', value: true);
 }
