@@ -298,6 +298,15 @@ class _ColorPickerComboState extends State<ColorPickerCombo>
   final _comboKey = GlobalKey<ComboState>();
 
   @override
+  void didUpdateWidget(ColorPickerCombo oldWidget) {
+    final color = widget.color;
+    if (color != oldWidget.color && color != _color) {
+      setState(() => _color = color);
+    }
+    super.didUpdateWidget(oldWidget);
+  }
+
+  @override
   bool get opened => _comboKey.currentState?.opened == true;
 
   @override
