@@ -333,7 +333,11 @@ class _ColorPickerComboState extends State<ColorPickerCombo>
               padding: const EdgeInsets.all(8.0),
               child: ColorPicker(
                 color: _color,
-                onColorChanged: (color) => setState(() => _color = color),
+                onColorChanged: (color) {
+                  setState(() => _color = color);
+                  final onColorChanged = widget.onColorChanged;
+                  if (onColorChanged != null) onColorChanged(color);
+                },
                 showColorContainer: false,
               ),
             )),
