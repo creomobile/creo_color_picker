@@ -22,9 +22,6 @@ const _rainbow = LinearGradient(colors: [
 typedef ColorPositionChanged<TPosition> = Function(
     TPosition position, Color color);
 
-/// Define combo color picker text title placement
-enum ColorPickerComboTextTitlePlacement { label, placeholder }
-
 /// Signature for combo color picker title decorator builder
 typedef ColorPickerTitleDecoratorBuilder = Widget Function(
   BuildContext context,
@@ -47,9 +44,8 @@ class ColorPickerParameters {
     this.paletteCursorSize,
     this.paletteCursorColor,
     this.paletteCursorWidth,
-    this.colorHexHeight,
+    this.colorContainerHeight,
     this.withAlpha,
-    this.comboTextTitlePlacement,
     this.titleDecoratorBuilder,
     this.comboPopupSize,
     this.comboColorContainerHeight,
@@ -64,9 +60,8 @@ class ColorPickerParameters {
       paletteCursorSize: 24.0,
       paletteCursorColor: Colors.white,
       paletteCursorWidth: 2.0,
-      colorHexHeight: 76.0,
+      colorContainerHeight: 76.0,
       withAlpha: true,
-      comboTextTitlePlacement: ColorPickerComboTextTitlePlacement.label,
       titleDecoratorBuilder: buildDefaultTitleDecorator,
       comboPopupSize: Size(0, 400),
       comboColorContainerHeight: 24.0);
@@ -93,15 +88,10 @@ class ColorPickerParameters {
   final double paletteCursorWidth;
 
   /// Determine cursor height of [ColorContainer] in [ColorPicker]
-  final double colorHexHeight;
+  final double colorContainerHeight;
 
   /// Determine possibility of alpha setting for color in [ColorHex] and [ColorPicker]
   final bool withAlpha;
-
-  /// Define combo color picker text title placement
-  /// [label] as [InputDecoration.labelText]
-  /// [placeholder] as [InputDecoration.hintText]
-  final ColorPickerComboTextTitlePlacement comboTextTitlePlacement;
 
   /// Define combo title decorator builder for color picker combo
   final ColorPickerTitleDecoratorBuilder titleDecoratorBuilder;
@@ -121,9 +111,8 @@ class ColorPickerParameters {
     double paletteCursorSize,
     Color paletteCursorColor,
     double paletteCursorWidth,
-    double colorHexHeight,
+    double colorContainerHeight,
     bool withAlpha,
-    ColorPickerComboTextTitlePlacement comboTextTitlePlacement,
     ColorPickerTitleDecoratorBuilder titleDecoratorBuilder,
     Size comboPopupSize,
     double comboColorContainerHeight,
@@ -137,10 +126,8 @@ class ColorPickerParameters {
         paletteCursorSize: paletteCursorSize ?? this.paletteCursorSize,
         paletteCursorColor: paletteCursorColor ?? this.paletteCursorColor,
         paletteCursorWidth: paletteCursorWidth ?? this.paletteCursorWidth,
-        colorHexHeight: colorHexHeight ?? this.colorHexHeight,
+        colorContainerHeight: colorContainerHeight ?? this.colorContainerHeight,
         withAlpha: withAlpha ?? this.withAlpha,
-        comboTextTitlePlacement:
-            comboTextTitlePlacement ?? this.comboTextTitlePlacement,
         titleDecoratorBuilder:
             titleDecoratorBuilder ?? this.titleDecoratorBuilder,
         comboPopupSize: comboPopupSize ?? this.comboPopupSize,
@@ -158,21 +145,12 @@ class ColorPickerParameters {
     Widget child,
   ) {
     final theme = Theme.of(context);
-    final titlePlacement = colorPickerParameters.comboTextTitlePlacement;
-    final decoration = InputDecoration(
-            labelText: titlePlacement == null ||
-                    titlePlacement == ColorPickerComboTextTitlePlacement.label
-                ? title
-                : null,
-            hintText:
-                titlePlacement == ColorPickerComboTextTitlePlacement.placeholder
-                    ? title
-                    : null,
-            border: OutlineInputBorder())
-        .applyDefaults(theme.inputDecorationTheme)
-        .copyWith(
-          enabled: comboParameters.enabled,
-        );
+    final decoration =
+        InputDecoration(labelText: title, border: OutlineInputBorder())
+            .applyDefaults(theme.inputDecorationTheme)
+            .copyWith(
+              enabled: comboParameters.enabled,
+            );
     return Stack(
       children: [
         Material(
@@ -226,10 +204,8 @@ class ColorPickerContext extends StatelessWidget {
       paletteCursorSize: my.paletteCursorSize ?? def.paletteCursorSize,
       paletteCursorColor: my.paletteCursorColor ?? def.paletteCursorColor,
       paletteCursorWidth: my.paletteCursorWidth ?? def.paletteCursorWidth,
-      colorHexHeight: my.colorHexHeight ?? def.colorHexHeight,
+      colorContainerHeight: my.colorContainerHeight ?? def.colorContainerHeight,
       withAlpha: my.withAlpha ?? def.withAlpha,
-      comboTextTitlePlacement:
-          my.comboTextTitlePlacement ?? def.comboTextTitlePlacement,
       titleDecoratorBuilder:
           my.titleDecoratorBuilder ?? def.titleDecoratorBuilder,
       comboPopupSize: my.comboPopupSize ?? def.comboPopupSize,
@@ -444,7 +420,7 @@ class _ColorPickerState extends State<ColorPicker> {
     return Column(mainAxisSize: MainAxisSize.min, children: [
       if (widget.showColorContainer)
         SizedBox(
-          height: parameters.colorHexHeight,
+          height: parameters.colorContainerHeight,
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(child: ColorContainer(color: _color)),
             const SizedBox(width: 16),
@@ -1026,7 +1002,7 @@ class _AlphaSliderTrackShape extends SliderTrackShape
     _AlphaPainter.paintAlpha(
         canvas,
         Rect.fromLTWH(rect.left, rect.top, rect.width - size, rect.height),
-        Colors.black12,
+        alphaColor,
         size,
         1);
     canvas.drawRRect(
